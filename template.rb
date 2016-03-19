@@ -8,7 +8,7 @@ end
 gemfile(true) do
   source 'https://rubygems.org'
   # Activate the gem you are reporting the issue against.
-  gem 'activerecord', '4.2.0'
+  gem 'activerecord', '4.2.3'
   gem 'sqlite3'
 end
 
@@ -24,29 +24,30 @@ ActiveRecord::Base.establish_connection(adapter: 'sqlite3', database: ':memory:'
 ActiveRecord::Base.logger = Logger.new(STDOUT)
 
 ActiveRecord::Schema.define do
-  create_table :posts, force: true do |t|
-  end
-
-  create_table :comments, force: true do |t|
-    t.integer :post_id
+  create_table :users, force: true do |t|
+    t.integer :approval_status, limit: 1, default: 0
   end
 end
 
-class Post < ActiveRecord::Base
-  has_many :comments
+class User < ActiveRecord::Base
+  enum approval_status: [:pending, :approved, :declined]
 end
 
-class Comment < ActiveRecord::Base
-  belongs_to :post
-end
 
 class BugTest < Minitest::Test
-  def test_association_stuff
-    post = Post.create!
-    post.comments << Comment.create!
+  def setup
+    User.create!
+  end
 
-    assert_equal 1, post.comments.count
-    assert_equal 1, Comment.count
-    assert_equal post.id, Comment.first.post.id
+  def teardown
+    User.delete_all
+  end
+
+  def test_enum_with_string
+    assert_equal 1, User.where(approval_status: 'pending').count
+  end
+
+  def test_enum_with_symbol
+    assert_equal 1, User.where(approval_status: :pending).count
   end
 end
